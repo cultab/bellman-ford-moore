@@ -1,10 +1,10 @@
 ---
-title: ----------TITLE-------------
+title: "Προγραμματιστική Εργασία Εξαμήνου: Bellman-Ford"
 subtitle: |
     | Πανεπιστήμιο Δυτικής Αττικής
     | Τμήμα Μηχανικών Πληροφορικής και Υπολογιστών
     | \includegraphics{./img/logo.jpg}
-    | -----------ACTUAL SUBTITLE-------------
+    | "Εργαστήριο Θεωρίας Γραφιμάτων"
 author: Ευάγγελος Κατσανδρής (cs171014@uniwa.gr)
 date: "`r Sys.setlocale('LC_TIME', 'el_GR.utf8'); format(Sys.time(), '%d %B, %Y')`"
 output: 
@@ -15,7 +15,7 @@ output:
         number_sections: true
         toc: false
         citation_package: biblatex
-#bibliography: "bibliography.bib"
+bibliography: "bibliography.bib"
 lang: "el"
 mainfont: 'Liberation Serif'
 sansfont: 'Liberation Sans'
@@ -80,6 +80,259 @@ header-includes:
 
 \listoffigures
 
-\listoftables
+<!-- \listoftables -->
 
 \newpage
+
+# Εισαγωγή
+
+Στην παρούσα εργασία μας ζητήθηκε να υλοποιήσουμε στη γλώσσα R^[Το παρόν pdf είναι επίσης γραμμένο με την βοήθεια της R βιβλιοθήκης [@rmarkdown] ] [@R-base] τον αλγόριθμο
+Bellman-Ford και από τα αποτελέσματα του να εξάγουμε τα συντομότερα μονοπάτια από 
+μια αρχική κορυφή προς όλες τις άλλες (1-to-all). 
+
+Επιπλέον παραδοχές και περιορισμοί:
+
+* Οι γράφοι αναπαριστώνται από μήτρες.
+
+* Οι γράφοι έχουν αρνητικά βάρη, αλλά όχι αρνητικούς κύκλους.
+
+
+# Υλοποίηση
+
+Το εκτελέσιμο script.R υλοποιεί τα ζητούμενα. 
+Οι μήτρες φορτώνονται από αρχεία που επιλέγονται από command line argument, αν δεν δοθεί όνομα αρχείου
+χρησιμοποιείτε το matrix.txt. Στα αρχεία αυτά το 0 ορίζεται ως η απουσία ακμής και κατά την εκτέλεση αντικαθιστώνται με \infty,
+εφόσον μπορούμε να πούμε ότι η ακμή που απουσιάζει έχει άπειρο βάρος -άλλες τιμές ορίζουν τα βάρη των ακμών.
+
+Στη υλοποίηση χρησιμοποιούνται 3 βασικές και 3 βοηθητικές συναρτήσεις. Οι βασικές είναι: 
+
+* main() στην οποία φορτώνουμε μια μήτρα γράφου από αρχείο και χρησιμοποιούμε τις επόμενες συναρτήσεις
+
+* bellman_ford() η οποία υλοποιεί τον αλγόριθμο Bellman-Ford.
+
+* paths_from_predecessor() η οποία χρησιμοποιώντας το διάνυσμα predecessors που παράγει ο Bellman-Ford εξάγει τα μονοπάτια που βρέθηκαν.
+
+* load_graph() η οποία διαβάζει ένα αρχείο μήτρας γράφου και μετασχηματίζει κατάλληλα τα δεδομένα (μετατρέπει τα 0 σε \infty)
+
+Οι 3 βοηθητικές γράφουνε αρχεία GraphViz, ώστε να αναπαραστήσουμε τους γράφους και τα μονοπάτια γραφικά.
+
+* graph_dot() κατασκευάζει έναν γράφο
+
+* path_dot() κατασκευάζει ένα μονοπάτι (δεν χρησιμοποιείτε)
+
+* graph_path_dot() κατασκευάζει έναν γράφο με ένα μονοπάτι τονισμένο κόκκινο.
+
+Παρακάτω βλέπετε τις πιο σημαντικές συναρτήσεις, τις bellman_ford() και paths_from_predecessor().
+
+```R
+bellman_ford <- function(graph) {
+    # Return predecessor and distance vectors
+    # using the bellman-ford-moore algorithm
+
+    # declare distance and predecessor vectors
+    distance <- c()
+    predecessor <- c()
+
+    # initialize distance and predecessor vectors
+    for (i in seq(graph)) {
+        distance <- append(distance, Inf)
+        predecessor <- append(predecessor, Inf) # use Inf as null?
+    }
+
+    # run length - 1 times
+    for (i in 1:-1 + length(graph)) {
+        # use u and v as indexes to better
+        # match the mathematical definition of the algorithm
+        for (u in seq(graph)) {
+            for (v in seq(graph)) {
+                weight <- graph[u, v]
+                if (distance[u] + weight < distance[v]) {
+                    distance[v] <- distance[u] + weight
+                    predecessor[v] <- u
+                }
+            }
+        }
+    }
+    # check for negative cycles (not really needed since it's a given)
+    # but it's done incase I make a mistake with the matrix file of the graph
+    for (u in seq(graph)) {
+        for (v in seq(graph)) {
+            weight <- graph[u, v]
+            if (distance[u] + weight < distance[v]) {
+                print("Graph contains negative weight cycle")
+                quit(status = -1)
+            }
+        }
+    }
+
+    ret <- list("distance" = distance, "predecessor" = predecessor)
+    return(ret)
+}
+```
+
+```R
+paths_from_predecessor <- function(predecessor, start) {
+    # Return the shortest paths from start
+    # to all other vertexes using a predecessor vector.
+
+    paths <- c()
+
+    # for every possible end vertex (target)
+    for (target in seq(predecessor)) {
+        path <- c()
+        nxt <- target
+        # repeatedly get it's predecessor and add it to the path
+        # NOTE: the path is build backwards, from the end to the start
+        repeat {
+            if (nxt == 0) {
+                break
+            }
+            path <- append(path, nxt)
+            if (nxt == Inf) {
+                break
+            }
+            # if we reach the starting vertex or the vertex is unreachable, stop
+            nxt <- predecessor[nxt]
+        }
+
+        # reverse that path
+        path <- rev(path)
+
+        if (path[1] == Inf) {
+            paths[[target]] <- Inf # vertex unreachable
+        } else if (path[1] == target) {
+            paths[[target]] <- NA # path to self
+        } else {
+            paths[[target]] <- path # normal path
+        }
+    }
+
+    return(paths)
+}
+```
+
+Η εργασία ζητάει μόνο τα συντομότερα μονοπάτια 1-to-all από την πρώτη κορυφή αλλά ο κώδικας εύκολα μπορεί να παράγει και τα μονοπάτια all-to-all. Για να γίνει αυτό
+αρκεί να αντικατασταθεί το παρακάτω κομμάτι κώδικα της συνάρτησης main().
+
+```R
+# get paths
+paths <- paths_from_predecessor(ret$predecessor, start_vertex)
+for (i in seq(paths)) {
+    target <- rev(paths[[i]])[1]
+    # draw graph with path highlighted
+    graph_path_dot(graph, paths[i], filename = paste0(
+        filename, "_graph_",
+        start_vertex, "_to_", target,
+        ".gv"
+    ))
+}
+```
+
+Με αυτό το κομμάτι το οποίο βρίσκετε λίγο πιο κάτω σε ένα while(0) βρόχο ώστε να μην τρέξει.
+
+```R
+all_paths <- c()
+for (start_vertex in seq(graph)) {
+    ret <- bellman_ford(graph, start_vertex)
+    paths <- paths_from_predecessor(ret$predecessor, start_vertex)
+    all_paths[[start_vertex]] <- paths
+    # graph out all paths
+    for (i in seq(paths)) {
+        target <- rev(paths[[i]])[1]
+        graph_path_dot(graph, paths[i], filename = paste0(
+            filename, "_graph_",
+            start_vertex, "_to_", target,
+            ".gv"
+        ))
+    }
+all_paths[[start_vertex]] <- paths
+}
+```
+
+# Αποτελέσματα
+
+Χρησιμοποιώντας τα αρχεία GraphViz που φτιάχνουμε μπορούμε να δούμε γραφικά τα αποτελέσματα. Θα δούμε τα αποτελέσματα για 2 γράφους.
+
+\newpage
+
+## Γράφος 1 (αρνητικά βάρη)
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{"./matrix.txt_graph.pdf"}
+    \caption{Γράφος 1}
+    \label{graph:1}
+\end{figure}
+
+
+\begin{figure}[H]
+\centering
+    \begin{subfigure}[b]{0.5\textwidth}
+    \centering
+        \includegraphics[width=\textwidth]{"./matrix.txt_graph_1_to_2.pdf"}
+        \caption{Από κορυφή 1 σε 2}
+    \end{subfigure}%
+    \begin{subfigure}[b]{0.5\textwidth}
+    \centering
+        \includegraphics[width=\textwidth]{"./matrix.txt_graph_1_to_3.pdf"}
+        \caption{Από κορυφή 1 σε 3}
+    \end{subfigure}
+    \begin{subfigure}[b]{0.5\textwidth}
+    \centering
+        \includegraphics[width=\textwidth]{"./matrix.txt_graph_1_to_4.pdf"}
+        \caption{Από κορυφή 1 σε 4}
+    \end{subfigure}%
+    \begin{subfigure}[b]{0.5\textwidth}
+    \centering
+        \includegraphics[width=\textwidth]{"./matrix.txt_graph_1_to_5.pdf"}
+        \caption{Από κορυφή 1 σε 5}
+    \end{subfigure}
+    \begin{subfigure}[b]{0.5\textwidth}
+    \centering
+        \includegraphics[width=\textwidth]{"./matrix.txt_graph_1_to_6.pdf"}
+        \caption{Από κορυφή 1 σε 6}
+    \end{subfigure}
+    \caption{Συντομότερα μονοπάτια γράφου Σχήματος \ref{graph:1}}
+    \label{paths:1}
+\end{figure}
+
+## Γράφος 2
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{"./matrix2.txt_graph.pdf"}
+    \caption{Γράφος 2}
+    \label{graph:2}
+\end{figure}
+
+
+\begin{figure}[H]
+\centering
+    \begin{subfigure}[b]{0.5\textwidth}
+    \centering
+        \includegraphics[width=\textwidth]{"./matrix2.txt_graph_1_to_2.pdf"}
+        \caption{Από κορυφή 1 σε 2}
+    \end{subfigure}%
+    \begin{subfigure}[b]{0.5\textwidth}
+    \centering
+        \includegraphics[width=\textwidth]{"./matrix2.txt_graph_1_to_3.pdf"}
+        \caption{Από κορυφή 1 σε 3}
+    \end{subfigure}
+    \begin{subfigure}[b]{0.5\textwidth}
+    \centering
+        \includegraphics[width=\textwidth]{"./matrix2.txt_graph_1_to_4.pdf"}
+        \caption{Από κορυφή 1 σε 4}
+    \end{subfigure}%
+    \begin{subfigure}[b]{0.5\textwidth}
+    \centering
+        \includegraphics[width=\textwidth]{"./matrix2.txt_graph_1_to_5.pdf"}
+        \caption{Από κορυφή 1 σε 5}
+    \end{subfigure}
+    \begin{subfigure}[b]{0.5\textwidth}
+    \centering
+        \includegraphics[width=\textwidth]{"./matrix2.txt_graph_1_to_6.pdf"}
+        \caption{Από κορυφή 1 σε 6}
+    \end{subfigure}
+    \caption{Συντομότερα μονοπάτια γράφου Σχήματος \ref{graph:2}}
+    \label{paths:2}
+\end{figure}

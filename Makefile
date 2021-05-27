@@ -16,6 +16,7 @@ render:
 
 run:
 	./script.R
+	./script.R matrix2.txt
 
 clean:
 	rm -rf *graph*.gv

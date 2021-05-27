@@ -1,5 +1,4 @@
 #!/bin/env Rscript
-library("optparse")
 
 main <- function() { # !/usr/bin/env Rscript
     # get commandline arguments
@@ -18,15 +17,15 @@ main <- function() { # !/usr/bin/env Rscript
     }
 
     # load graph
-    graph <- load_graph(filename)
+    graph <- load_graph(filename);
     # draw the graph
-    graph_dot(graph, 1, "graph.gv")
+    graph_dot(graph, 1, paste0(filename, "_graph.gv"));
+
+    # run bellman_ford
+    ret <- bellman_ford(graph);
 
     # set starting vertex as 1
     start_vertex <- 1
-
-    # run bellman_ford
-    ret <- bellman_ford(graph, start_vertex)
 
     # get paths
     paths <- paths_from_predecessor(ret$predecessor, start_vertex)
@@ -45,23 +44,22 @@ main <- function() { # !/usr/bin/env Rscript
     while (0) {
     all_paths <- c()
     for (start_vertex in seq(graph)) {
-        ret <- bellman_ford(graph, start_vertex)
         paths <- paths_from_predecessor(ret$predecessor, start_vertex)
-        all_paths[[start_vertex]] <- paths
         # graph out all paths
         for (i in seq(paths)) {
             target <- rev(paths[[i]])[1]
             graph_path_dot(graph, paths[i], filename = paste0(
-                "graph_", start_vertex, "_to_",
-                target, ".gv"
+                filename, "_graph_",
+                start_vertex, "_to_", target,
+                ".gv"
             ))
+        all_paths[[start_vertex]] <- paths
         }
-    all_paths[[start_vertex]] <- paths
     }
     } # /\ NOT RUN /\
 }
 
-bellman_ford <- function(graph, start) {
+bellman_ford <- function(graph) {
     # Return predecessor and distance vectors
     # using the bellman-ford-moore algorithm
 
@@ -74,9 +72,6 @@ bellman_ford <- function(graph, start) {
         distance <- append(distance, Inf)
         predecessor <- append(predecessor, Inf) # use Inf as null?
     }
-
-    distance[start] <- 0
-    predecessor[start] <- 0 # 0 means it's the starting vertex
 
     # run length - 1 times
     for (i in 1:-1 + length(graph)) {
@@ -93,8 +88,7 @@ bellman_ford <- function(graph, start) {
         }
     }
     # check for negative cycles (not really needed since it's a given)
-    # \/ NOT RUN \/
-    while (0) {
+    # but it's done incase I make a mistake with the matrix file of the graph
     for (u in seq(graph)) {
         for (v in seq(graph)) {
             weight <- graph[u, v]
@@ -104,8 +98,6 @@ bellman_ford <- function(graph, start) {
             }
         }
     }
-    }
-    # /\ NOT RUN /\
 
     ret <- list("distance" = distance, "predecessor" = predecessor)
     return(ret)
