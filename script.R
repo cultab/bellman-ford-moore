@@ -22,17 +22,20 @@ main <- function() { # !/usr/bin/env Rscript
     # draw the graph
     graph_dot(graph, 1, "graph.gv")
 
+    # set starting vertex as 1
+    start_vertex <- 1
+
     # run bellman_ford
-    ret <- bellman_ford(graph, start_node)
+    ret <- bellman_ford(graph, start_vertex)
 
     # get paths
-    paths <- paths_from_predecessor(ret$predecessor, start_node)
+    paths <- paths_from_predecessor(ret$predecessor, start_vertex)
     for (i in seq(paths)) {
         target <- rev(paths[[i]])[1]
         # draw graph with path highlighted
         graph_path_dot(graph, paths[i], filename = paste0(
             filename, "_graph_",
-            start_node, "_to_", target,
+            start_vertex, "_to_", target,
             ".gv"
         ))
     }
@@ -41,19 +44,19 @@ main <- function() { # !/usr/bin/env Rscript
     # \/ NOT RUN \/
     while (0) {
     all_paths <- c()
-    for (start_node in seq(graph)) {
-        ret <- bellman_ford(graph, start_node)
-        paths <- paths_from_predecessor(ret$predecessor, start_node)
-        all_paths[[start_node]] <- paths
+    for (start_vertex in seq(graph)) {
+        ret <- bellman_ford(graph, start_vertex)
+        paths <- paths_from_predecessor(ret$predecessor, start_vertex)
+        all_paths[[start_vertex]] <- paths
         # graph out all paths
         for (i in seq(paths)) {
             target <- rev(paths[[i]])[1]
             graph_path_dot(graph, paths[i], filename = paste0(
-                "graph_", start_node, "_to_",
+                "graph_", start_vertex, "_to_",
                 target, ".gv"
             ))
         }
-    all_paths[[start_node]] <- paths
+    all_paths[[start_vertex]] <- paths
     }
     } # /\ NOT RUN /\
 }
@@ -114,7 +117,7 @@ paths_from_predecessor <- function(predecessor, start) {
 
     paths <- c()
 
-    # for every possible end node (target)
+    # for every possible end vertex (target)
     for (target in seq(predecessor)) {
         path <- c()
         nxt <- target
