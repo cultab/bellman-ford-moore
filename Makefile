@@ -9,7 +9,7 @@ $(PDF): %.pdf: %.gv
 graph: $(PDF)
 
 show: graph
-	zathura graph*.pdf &
+	zathura *graph*.pdf &
 
 render:
 	R -e "require(rmarkdown);render('report.rmd');"
@@ -17,4 +17,8 @@ render:
 run:
 	./script.R
 
-.PHONY: graph render all show run
+clean:
+	rm -rf *graph*.gv
+	rm -rf *graph*.pdf
+
+.PHONY: graph render all show run clean

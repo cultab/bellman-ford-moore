@@ -31,8 +31,9 @@ main <- function() { # !/usr/bin/env Rscript
         target <- rev(paths[[i]])[1]
         # draw graph with path highlighted
         graph_path_dot(graph, paths[i], filename = paste0(
-            "graph_", start_node, "_to_",
-            target, ".gv"
+            filename, "_graph_",
+            start_node, "_to_", target,
+            ".gv"
         ))
     }
 
@@ -199,7 +200,6 @@ path_dot <- function(path, filename) {
     cat("node [shape=box style=filled fixedsize=true fillcolor=yellow]\n")
     cat("start [shape=plaintext, fillcolor=none]\n")
     cat("start ->", path[[1]][1], ";\n")
-    # cat(path[[1]][1], "[shape=cds style=filled fillcolor=ivory];\n")
     l <- length(path[[1]])
     for (i in seq(from = 1, to = l - 1)) {
         if (!is.na(path[[1]][i + 1])) {
