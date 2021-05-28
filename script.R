@@ -18,14 +18,18 @@ main <- function() { # !/usr/bin/env Rscript
 
     # load graph
     graph <- load_graph(filename);
-    # draw the graph
-    graph_dot(graph, 1, paste0(filename, "_graph.gv"));
 
-    # run bellman_ford
-    ret <- bellman_ford(graph);
+    # remove extention
+    gv_filename <- sub("\\..*$", "", filename)
+
+    # draw the graph
+    graph_dot(graph, 1, paste0(gv_filename, "_graph.gv"));
 
     # set starting vertex as 1
     start_vertex <- 1
+
+    # run bellman_ford
+    ret <- bellman_ford(graph, start_vertex);
 
     # get paths
     paths <- paths_from_predecessor(ret$predecessor, start_vertex)
@@ -33,7 +37,7 @@ main <- function() { # !/usr/bin/env Rscript
         target <- rev(paths[[i]])[1]
         # draw graph with path highlighted
         graph_path_dot(graph, paths[i], filename = paste0(
-            filename, "_graph_",
+            gv_filename, "_graph_",
             start_vertex, "_to_", target,
             ".gv"
         ))
@@ -49,7 +53,7 @@ main <- function() { # !/usr/bin/env Rscript
         for (i in seq(paths)) {
             target <- rev(paths[[i]])[1]
             graph_path_dot(graph, paths[i], filename = paste0(
-                filename, "_graph_",
+                gv_filename, "_graph_",
                 start_vertex, "_to_", target,
                 ".gv"
             ))
@@ -59,7 +63,7 @@ main <- function() { # !/usr/bin/env Rscript
     } # /\ NOT RUN /\
 }
 
-bellman_ford <- function(graph) {
+bellman_ford <- function(graph, start) {
     # Return predecessor and distance vectors
     # using the bellman-ford-moore algorithm
 
@@ -73,8 +77,11 @@ bellman_ford <- function(graph) {
         predecessor <- append(predecessor, Inf) # use Inf as null?
     }
 
+    distance[start] <- 0
+    predecessor[start] <- 0 # 0 means it's the starting vertex
+
     # run length - 1 times
-    for (i in 1:-1 + length(graph)) {
+    for (i in 1: -1 + length(graph)) {
         # use u and v as indexes to better
         # match the mathematical definition of the algorithm
         for (u in seq(graph)) {
