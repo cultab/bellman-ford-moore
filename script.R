@@ -48,6 +48,7 @@ main <- function() { # !/usr/bin/env Rscript
     while (0) {
     all_paths <- c()
     for (start_vertex in seq(graph)) {
+        ret <- bellman_ford(graph, start_vertex);
         paths <- paths_from_predecessor(ret$predecessor, start_vertex)
         # graph out all paths
         for (i in seq(paths)) {

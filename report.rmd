@@ -1,5 +1,5 @@
 ---
-title: "Προγραμματιστική Εργασία Εξαμήνου: Bellman-Ford"
+title: "Προγραμματιστική Εργασία Εξαμήνου: Υλοποίηση Bellman-Ford"
 subtitle: |
     | Πανεπιστήμιο Δυτικής Αττικής
     | Τμήμα Μηχανικών Πληροφορικής και Υπολογιστών
@@ -88,7 +88,7 @@ header-includes:
 
 Στην παρούσα εργασία μας ζητήθηκε να υλοποιήσουμε στη γλώσσα
 R^[Το παρόν pdf είναι επίσης γραμμένο με την βοήθεια της R βιβλιοθήκης Rmarkdown [@rmarkdown] ] [@R-base]
-τον αλγόριθμο Bellman-Ford και από τα αποτελέσματα του να εξάγουμε τα συντομότερα μονοπάτια από 
+τον αλγόριθμο Bellman-Ford (ή αλλιώς Bellman-Ford-Moore) και από τα αποτελέσματα του να εξάγουμε τα συντομότερα μονοπάτια από 
 μια αρχική κορυφή προς όλες τις άλλες (1-to-all). 
 
 Επιπλέον παραδοχές και περιορισμοί:
@@ -145,16 +145,17 @@ bellman_ford <- function(graph) {
         predecessor <- append(predecessor, Inf) # use Inf as null?
     }
 
+    distance[start] <- 0
+    predecessor[start] <- 0 # 0 means it's the starting vertex
+```
+
+Εδώ βρίσκουμε τις ελάχιστες αποστάσεις για να φτάσουμε σε κάθε κορυφή χρησιμοποιώντας τους γειτόνους κάθε κορυφής.
+
+```R
     # run length - 1 times
     for (i in 1:-1 + length(graph)) {
         # use u and v as indexes to better
         # match the mathematical definition of the algorithm
-```
-
-Εδώ βρίσκουμε τις ελάχιστες αποστάσεις για να φτάσουμε σε κάθε κορυφή χρησιμοποιώντας
-τους γειτόνους κάθε κορυφής.
-
-```R
         for (u in seq(graph)) {
             for (v in seq(graph)) {
 ```
@@ -176,7 +177,7 @@ bellman_ford <- function(graph) {
 Εδώ ελέγχουμε εάν υπάρχουν αρνητικοί κύκλοι. Σύμφωνα με την εργασία οι γράφοι που θα δίνονται
 ως είσοδο δεν θα έχουν, αλλά ο κώδικας υπάρχει σε περίπτωση που έγινε λάθος κατά την κατασκευή του
 αρχείου μήτρας ενός γράφου. Βασίζεται στην ιδέα ότι εάν ο γράφος δεν είχε κύκλους αρνητικών βαρών τότε επιπλέον
-επαναλήψεις του βρόχου εύρεσης έλαχιστων αποστάσεων δεν πρέπει να μας βρει νέα ελάχιστη απόσταση.
+επαναλήψεις του βρόχου εύρεσης ελάχιστων αποστάσεων δεν πρέπει να μας βρουν νέες ελάχιστες αποστάσεις
 Αυτό ισχύει γιατί ξέρουμε ότι με αριθμό επαναλήψεων ίσο με το πλήθος των κορυφών μείον 1 έχουμε βρει τα ελάχιστα μονοπάτια.
 
 ```R
@@ -262,17 +263,27 @@ paths_from_predecessor <- function(predecessor, start) {
 }
 ```
 
+\newpage
+
+## Παρατήρηση
+
 Η εργασία ζητάει μόνο τα συντομότερα μονοπάτια 1-to-all από την πρώτη κορυφή αλλά ο κώδικας εύκολα μπορεί να παράγει και τα μονοπάτια all-to-all. Για να γίνει αυτό
 αρκεί να αντικατασταθεί το παρακάτω κομμάτι κώδικα της συνάρτησης main().
 
 ```R
+# set starting vertex as 1
+start_vertex <- 1
+
+# run bellman_ford
+ret <- bellman_ford(graph, start_vertex);
+
 # get paths
 paths <- paths_from_predecessor(ret$predecessor, start_vertex)
 for (i in seq(paths)) {
     target <- rev(paths[[i]])[1]
     # draw graph with path highlighted
     graph_path_dot(graph, paths[i], filename = paste0(
-        filename, "_graph_",
+        gv_filename, "_graph_",
         start_vertex, "_to_", target,
         ".gv"
     ))
@@ -284,19 +295,18 @@ for (i in seq(paths)) {
 ```R
 all_paths <- c()
 for (start_vertex in seq(graph)) {
-    ret <- bellman_ford(graph, start_vertex)
+    ret <- bellman_ford(graph, start_vertex);
     paths <- paths_from_predecessor(ret$predecessor, start_vertex)
-    all_paths[[start_vertex]] <- paths
     # graph out all paths
     for (i in seq(paths)) {
         target <- rev(paths[[i]])[1]
         graph_path_dot(graph, paths[i], filename = paste0(
-            filename, "_graph_",
+            gv_filename, "_graph_",
             start_vertex, "_to_", target,
             ".gv"
         ))
+    all_paths[[start_vertex]] <- paths
     }
-all_paths[[start_vertex]] <- paths
 }
 ```
 

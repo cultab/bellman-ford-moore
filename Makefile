@@ -11,8 +11,8 @@ graph: run $(PDF)
 show: graph
 	zathura *graph*.pdf &
 
-render: graph
-	R -e "require(rmarkdown);render('report.rmd');"
+render: .rmd graph
+	R --quiet -e "require(rmarkdown);render('report.rmd');"
 
 run:
 	./script.R
@@ -24,5 +24,7 @@ clean:
 
 submit:
 	cp report.pdf 171014_Ευάγγελος_Κατσανδρής_Εργασία_Εξαμήνου.pdf
+	zip 171014.zip 171014_Ευάγγελος_Κατσανδρής_Εργασία_Εξαμήνου.pdf script.R matrix.txt matrix2.txt
+	@echo "Make sure you '$$ make render' beforehand!"
 
 .PHONY: graph render all show run clean submit
